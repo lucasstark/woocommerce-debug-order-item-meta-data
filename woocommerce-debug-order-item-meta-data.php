@@ -27,6 +27,7 @@ class WC_Debug_Order_Item_Meta_Data {
 	}
 
 	private $all_values = [];
+	private $gravity_forms_values = [];
 
 	protected function __construct() {
 		add_action( 'woocommerce_checkout_create_order_line_item', [
@@ -36,6 +37,11 @@ class WC_Debug_Order_Item_Meta_Data {
 		add_action( 'woocommerce_checkout_order_created', [ $this, 'on_checkout_order_created' ], 10, 1 );
 
 		add_action( 'woocommerce_checkout_order_created', [ $this, 'on_woocommerce_checkout_order_created' ], 10, 1 );
+
+		add_filter( 'woocommerce_gforms_order_item_meta', [
+			$this,
+			'on_get_woocommerce_gforms_order_item_meta'
+		], 10, 6 );
 
 		add_action( 'admin_menu', array( $this, 'on_admin_menu' ), 99 );
 
@@ -53,7 +59,13 @@ class WC_Debug_Order_Item_Meta_Data {
 		$item->add_meta_data( $this->get_order_item_meta_key(), $cart_item_key );
 		$item->add_meta_data( '__wc_debug_order_cart_item_key', $cart_item_key );
 		unset( $values['data'] );
-		$this->all_values[ $cart_item_key ] = $values;
+		$this->all_values[ $cart_item_key ][] = $values;
+	}
+
+	public function on_get_woocommerce_gforms_order_item_meta( $order_item_meta, $field, $lead, $form_meta, $item_id, $cart_item ) {
+		$this->gravity_forms_values[ $cart_item['key'] ][] = $order_item_meta;
+
+		return $order_item_meta;
 	}
 
 	/**
@@ -85,10 +97,11 @@ class WC_Debug_Order_Item_Meta_Data {
 
 				if ( ! $valid ) {
 					$log_data[] = [
-						'valid'          => false,
-						'order_item_id'  => $order_item_id,
-						'meta_data'      => $meta_data_values,
-						'cart_item_data' => $this->all_values[ $cart_item_key ] ?? ''
+						'valid'             => false,
+						'order_item_id'     => $order_item_id,
+						'meta_data'         => $meta_data_values,
+						'cart_item_data'    => $this->all_values[ $cart_item_key ] ?? '',
+						'gravity_form_data' => $this->gravity_forms_values[ $cart_item_key ] ?? ''
 					];
 				}
 			}
@@ -139,7 +152,7 @@ class WC_Debug_Order_Item_Meta_Data {
 				$message .= '<p><a href="' . trailingslashit( get_admin_url() ) . 'admin.php?page=wc_debug_order_item_meta_data&wc_debug_log_entry_id=' . $log_entry['option_id'] . '">View Log</a>';
 				wp_mail( get_bloginfo( 'admin_email' ), 'WooCommerce Order Error', $message );
 
-				// throw new Exception( 'Order Item Meta Data Error ' . $logged_key . ' is not part of the order ' . $order->get_id() );
+				throw new Exception( 'Order Item Meta Data Error ' . $logged_key . ' is not part of the order ' . $order->get_id() );
 
 			}
 		}
@@ -193,39 +206,41 @@ class WC_Debug_Order_Item_Meta_Data {
                         <tr>
                             <th>Submitted Key</th>
                             <th>Submitted Value</th>
+                            <th>Gravity Form Value</th>
                         </tr>
-					<?php
+						<?php
 
-					$order_items = $order->get_items();
-					$log_entry   = $this->get_debug_entry_by_order( $order->get_id() );
-					if ( $order_items ) {
+						$order_items = $order->get_items();
+						$log_entry   = $this->get_debug_entry_by_order( $order->get_id() );
+						if ( $order_items ) {
 
-						$valid    = true;
-						$log_data = [];
-						foreach ( $order_items as $order_item ) {
-							$logged_order_item = wp_list_filter( $log_entry['data'], [ 'order_item_id' => $order_item->get_id() ] );
-							if ( $logged_order_item ) {
-								$logged_order_item = array_shift( $logged_order_item );
-								$logged_keys       = wp_list_pluck( $logged_order_item['meta_data'], 'key' );
-                                $logged_values = wp_list_pluck($logged_order_item['meta_data'], 'value', 'key');
-								$meta_data         = $order_item->get_meta_data();
-								$ordered_keys      = [];
-								foreach ( $meta_data as $meta_data_item ) {
-									$d                  = $meta_data_item->get_data();
-									$meta_data_values[] = $d;
-									$ordered_keys[]     = $d['key'];
-								}
+							$valid    = true;
+							$log_data = [];
+							foreach ( $order_items as $order_item ) {
+								$logged_order_item = wp_list_filter( $log_entry['data'], [ 'order_item_id' => $order_item->get_id() ] );
+								if ( $logged_order_item ) {
+									$logged_order_item          = array_shift( $logged_order_item );
+									$logged_keys                = wp_list_pluck( $logged_order_item['meta_data'], 'key' );
+									$logged_values              = wp_list_pluck( $logged_order_item['meta_data'], 'value', 'key' );
+									$logged_gravity_form_values = wp_list_pluck( $logged_order_item['gravity_form_data'], 'value', 'name' );
+									$meta_data                  = $order_item->get_meta_data();
+									$ordered_keys               = [];
+									foreach ( $meta_data as $meta_data_item ) {
+										$d                  = $meta_data_item->get_data();
+										$meta_data_values[] = $d;
+										$ordered_keys[]     = $d['key'];
+									}
 
-								foreach ( $logged_keys as $logged_key ) {
-									if ( ! in_array( $logged_key, $ordered_keys ) ) {
-                                        echo '<tr><td>' . $logged_key . '</td><td>' . $logged_values[$logged_key] . '</td></tr>';
+									foreach ( $logged_keys as $logged_key ) {
+										if ( ! in_array( $logged_key, $ordered_keys ) ) {
+											echo '<tr><td>' . $logged_key . '</td><td>' . $logged_values[ $logged_key ] . '</td><td>' . $logged_gravity_form_values[ $logged_key ] . '</td></tr>';
+										}
 									}
 								}
 							}
 						}
-					}
 
-					?>
+						?>
                     </table>
 				<?php endforeach; ?>
             </div>
