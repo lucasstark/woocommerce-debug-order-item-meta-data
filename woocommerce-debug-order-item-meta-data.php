@@ -1,7 +1,21 @@
 <?php
 /*
-	Plugin Name:  Debug WooCommerce Order Item Meta Data
-*/
+ * Plugin Name:  Debug WooCommerce Order Item Meta Data
+ * Plugin URI: https://github.com/lucasstark/woocommerce-debug-order-item-meta-data
+ * Description: Activate this plugin to record all cart values and order item meta values when an order is submitted to a log.   Helps with troubleshooting issues with order item metadata not properly being added to an order.
+ * Version: 1.0.2
+ * Author: Lucas Stark
+ * Author URI: https://www.elementstark.com/
+ * Requires at least: 3.1
+ * Tested up to: 6.0
+
+ * Copyright: © 2009-2022 Lucas Stark.
+ * License: GNU General Public License v3.0
+ * License URI: http://www.gnu.org/licenses/gpl-3.0.html
+
+ * WC requires at least: 6.6
+ * WC tested up to: 6.6
+ */
 
 class WC_Debug_Order_Item_Meta_Data {
 	private static $instance = null;
