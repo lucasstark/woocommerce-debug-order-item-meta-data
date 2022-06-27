@@ -152,7 +152,7 @@ class WC_Debug_Order_Item_Meta_Data {
 				$message .= '<p><a href="' . trailingslashit( get_admin_url() ) . 'admin.php?page=wc_debug_order_item_meta_data&wc_debug_log_entry_id=' . $log_entry['option_id'] . '">View Log</a>';
 				wp_mail( get_bloginfo( 'admin_email' ), 'WooCommerce Order Error', $message );
 
-				throw new Exception( 'Order Item Meta Data Error ' . $logged_key . ' is not part of the order ' . $order->get_id() );
+				// throw new Exception( 'Order Item Meta Data Error ' . $logged_key . ' is not part of the order ' . $order->get_id() );
 
 			}
 		}
