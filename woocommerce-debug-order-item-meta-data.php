@@ -155,7 +155,7 @@ class WC_Debug_Order_Item_Meta_Data {
 				// throw new Exception( 'Order Item Meta Data Error ' . $logged_key . ' is not part of the order ' . $order->get_id() );
 
 			} else {
-				delete_option( 'wc_debug_item_meta_' . $order->get_id() );
+				// delete_option( 'wc_debug_item_meta_' . $order->get_id() );
 			}
 		}
 	}
